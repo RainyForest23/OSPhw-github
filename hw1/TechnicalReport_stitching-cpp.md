@@ -232,3 +232,153 @@ void blend_stitching(const Mat I1, const Mat I2, Mat &I_f, int bound_l, int boun
 
 ### III.2 ``stitching.cpp``
 ![stitch-result](result-image/stitching-result.png)
+
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+
+## IV. etc
+---
+### OpenCV + C++ + VSCode on macOS (Apple Silicon) 트러블슈팅
+
+#### 환경
+
+- **Device:** M2 MacBook Air
+- **IDE:** VSCode
+- **Compiler:** g++ (Apple clang)
+- **OpenCV 설치:** Homebrew
+- **기본 폴더 구조:**
+
+```
+2025-1_OSP-hw/
+├── hw1/
+│   ├── main.cpp
+│   └── lena.png
+├── hw2/
+└── .vscode/
+    └── tasks.json
+```
+
+---
+
+##### 문제 1. `opencv2/opencv.hpp` file not found
+
+###### 🔍 원인
+
+- OpenCV는 설치되었지만, 헤더 경로가 컴파일에 포함되지 않음
+
+###### 💡 해결
+
+```bash
+g++ main.cpp -std=c++11 -o main \
+-I/opt/homebrew/opt/opencv/include/opencv4 \
+-L/opt/homebrew/opt/opencv/lib \
+-lopencv_core -lopencv_imgcodecs -lopencv_imgproc -lopencv_highgui
+```
+
+###### 문제 2. C++11 에러 (OpenCV 4.x+ requires enabled C++11 support)
+
+###### 🔍 원인
+
+- `-std=c++11` 옵션이 누락됨
+
+###### 💡 해결
+
+- 컴파일 시 반드시 `-std=c++11` 추가!
+
+###### 문제 3. lena.png 못 불러옴 (image.empty())
+
+###### 🔍 에러 메시지
+
+```
+imread_('lena.png'): can't open/read file: check file path/integrity
+```
+
+###### 💡 해결
+
+- main.cpp와 같은 디렉토리에 lena.png가 있어야 함
+- 없는 경우:
+    
+    ```bash
+    curl -o lena.png https://upload.wikimedia.org/wikipedia/en/7/7d/Lenna_%28test_image%29.png
+    ```
+    
+- 코드에 예외처리 추가 추천:
+    
+    ```cpp
+    if (image.empty()) {    std::cerr << "이미지를 불러오지 못했습니다." << std::endl;    return -1;}
+    ```
+    
+
+###### 문제 4. 폴더 이름에 괄호가 있어서 컴파일 오류 발생
+
+##### 🔍 원인
+
+- `(2025-1)`처럼 괄호 있는 폴더명은 터미널과 컴파일러에서 경로 인식 문제 발생
+
+###### 💡 해결
+
+- 폴더명 변경:
+    - `(2025-1) OSP-hw` → `2025-1_OSP-hw`
+
+###### 문제 5. VSCode tasks.json에서 main.cpp 못 찾음
+
+###### 🔍 원인
+
+- 작업 디렉토리(cwd)가 main.cpp가 있는 폴더와 다름
+
+###### 💡 해결
+
+```json
+"options": {
+  "cwd": "${fileDirname}"
+}
+```
+
+###### 문제 6. 여러 과제 폴더(hw1, hw2, ...)에 대해 자동 빌드 설정
+
+###### 💡 해결
+
+.vscode/tasks.json을 아래처럼 설정:
+
+```json
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Build OpenCV Project (Current File)",
+      "type": "shell",
+      "command": "g++",
+      "args": [
+        "-std=c++11",
+        "${file}",
+        "-o",
+        "${fileDirname}/${fileBasenameNoExtension}",
+        "-I/opt/homebrew/opt/opencv/include/opencv4",
+        "-L/opt/homebrew/opt/opencv/lib",
+        "-lopencv_core",
+        "-lopencv_imgcodecs",
+        "-lopencv_imgproc",
+        "-lopencv_highgui"
+      ],
+      "options": {
+        "cwd": "${fileDirname}"
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": []
+    }
+  ]
+}
+```
+
+###### 💡 사용 방법
+
+- VSCode에서 `2025-1_OSP-hw` 전체 열기
+- `hw1/main.cpp`, `hw2/main.cpp` 등 열고
+- `Cmd + Shift + B`로 자동 빌드
